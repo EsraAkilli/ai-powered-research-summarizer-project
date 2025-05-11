@@ -1,0 +1,12 @@
+# API Configuration
+openai:
+  api_key: "YOUR API KEY"
+  model: "gpt-4-turbo"
+
+ollama:
+  base_url: "http://localhost:11434"
+  model: "llama3"
+
+# Database Configuration
+database:
+  path: "articles.db"
