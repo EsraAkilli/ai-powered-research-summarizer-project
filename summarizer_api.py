@@ -1,13 +1,12 @@
 import openai
 import logging
 from typing import List, Dict, Any, Optional, Callable
-
 from summarizer import load_config, create_summary_prompt
 
-# Get logger from main module
 logger = logging.getLogger(__name__)
 
 ProgressCallback = Callable[[float, str], None]
+
 
 def setup_openai():
     """Setup OpenAI client and get the model name."""
@@ -23,9 +22,10 @@ def setup_openai():
         logger.error(f"Error setting up OpenAI: {e}")
         raise
 
+
 def generate_summary_openai(papers_content: List[Dict[str, Any]], user_query: str,
-                           progress_callback: Optional[ProgressCallback] = None) -> str:
-    """Generate a summary of the papers using OpenAI API."""
+                            progress_callback: Optional[ProgressCallback] = None) -> str:
+    """Generate a summary of the papers using OpenAI API with APA citations."""
     if progress_callback:
         progress_callback(0.6, "Preparing prompt for OpenAI...")
 
@@ -41,7 +41,7 @@ def generate_summary_openai(papers_content: List[Dict[str, Any]], user_query: st
             model=model,
             messages=[
                 {"role": "system",
-                 "content": "You are an expert academic research assistant who creates comprehensive, accurate summaries of scientific papers."},
+                 "content": "You are an expert academic research assistant who creates comprehensive, accurately cited summaries of scientific papers. You MUST include proper APA format in-text citations throughout your summary. Every major point should be properly attributed to the source papers using the citation format provided."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
@@ -54,7 +54,7 @@ def generate_summary_openai(papers_content: List[Dict[str, Any]], user_query: st
         summary = response.choices[0].message.content
 
         if progress_callback:
-            progress_callback(1.0, "Summary generated successfully!")
+            progress_callback(1.0, "Summary with citations generated successfully!")
 
         return summary
 

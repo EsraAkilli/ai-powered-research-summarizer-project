@@ -115,7 +115,6 @@ def generate_comparison_chart(df):
 
     plt.figure(figsize=(10, 6))
 
-    # F1 Scores
     plt.subplot(1, 3, 1)
     plt.bar([i - 0.2 for i in x], df["OpenAI_F1"], width=0.4, label='OpenAI', color='#4285F4')
     plt.bar([i + 0.2 for i in x], df["Ollama_F1"], width=0.4, label='Ollama', color='#34A853')
@@ -124,7 +123,6 @@ def generate_comparison_chart(df):
     plt.title("F1 Scores")
     plt.legend()
 
-    # Precision
     plt.subplot(1, 3, 2)
     plt.bar([i - 0.2 for i in x], df["OpenAI_Precision"], width=0.4, label='OpenAI', color='#4285F4')
     plt.bar([i + 0.2 for i in x], df["Ollama_Precision"], width=0.4, label='Ollama', color='#34A853')
@@ -132,7 +130,6 @@ def generate_comparison_chart(df):
     plt.ylabel("Score")
     plt.title("Precision")
 
-    # Recall
     plt.subplot(1, 3, 3)
     plt.bar([i - 0.2 for i in x], df["OpenAI_Recall"], width=0.4, label='OpenAI', color='#4285F4')
     plt.bar([i + 0.2 for i in x], df["Ollama_Recall"], width=0.4, label='Ollama', color='#34A853')
@@ -142,7 +139,6 @@ def generate_comparison_chart(df):
 
     plt.tight_layout()
 
-    # Convert plot to image
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     plt.close()
@@ -155,7 +151,6 @@ def generate_radar_chart(df):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, polar=True)
 
-    # Setup radar chart
     categories = ['ROUGE-1 F1', 'ROUGE-2 F1', 'ROUGE-L F1',
                   'ROUGE-1 Precision', 'ROUGE-2 Precision', 'ROUGE-L Precision',
                   'ROUGE-1 Recall', 'ROUGE-2 Recall', 'ROUGE-L Recall']
@@ -172,33 +167,26 @@ def generate_radar_chart(df):
         df.loc[0, 'Ollama_Recall'], df.loc[1, 'Ollama_Recall'], df.loc[2, 'Ollama_Recall']
     ]
 
-    # Number of variables
     N = len(categories)
 
-    # Angles for each category
     angles = [n / float(N) * 2 * 3.14159 for n in range(N)]
-    angles += angles[:1]  # Close the loop
+    angles += angles[:1]
 
-    # Add values for both models
     values_openai += values_openai[:1]
     values_ollama += values_ollama[:1]
 
-    # Plot
     ax.plot(angles, values_openai, linewidth=2, linestyle='solid', label="OpenAI", color='#4285F4')
     ax.fill(angles, values_openai, alpha=0.25, color='#4285F4')
 
     ax.plot(angles, values_ollama, linewidth=2, linestyle='solid', label="Ollama", color='#34A853')
     ax.fill(angles, values_ollama, alpha=0.25, color='#34A853')
 
-    # Set category labels
     plt.xticks(angles[:-1], categories)
 
-    # Add legend
     plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
 
     plt.title('OpenAI vs Ollama ROUGE Metrics Comparison', size=15, color='gray', y=1.1)
 
-    # Convert plot to image
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
     plt.close()
@@ -208,22 +196,17 @@ def generate_radar_chart(df):
 
 def evaluate_summaries(paper_ids, user_query, summary_api, summary_ollama):
     """Evaluate summaries using ROUGE scores and generate visualizations."""
-    # Get paper details
     papers = get_paper_details(paper_ids)
     if not papers:
         return None, None, None
 
-    # Create reference text
     reference_text = create_reference_text(papers)
 
-    # Compute ROUGE scores
     rouge_openai = compute_rouge(reference_text, summary_api)
     rouge_ollama = compute_rouge(reference_text, summary_ollama)
 
-    # Convert to DataFrame
     df = rouge_to_dataframe(rouge_openai, rouge_ollama)
 
-    # Generate charts
     comparison_chart = generate_comparison_chart(df)
     radar_chart = generate_radar_chart(df)
 
@@ -241,13 +224,11 @@ def slugify(text):
 def save_evaluation_results(user_query, reference_text, summary_api, summary_ollama, df, comparison_chart,
                             radar_chart):
     """Save evaluation results to disk."""
-    # Create folder structure
     query_slug = slugify(user_query)
     base_dir = "evaluation_results"
     output_dir = os.path.join(base_dir, query_slug)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Save text files
     with open(os.path.join(output_dir, 'reference.txt'), 'w') as f:
         f.write(reference_text)
     with open(os.path.join(output_dir, 'summary_api.md'), 'w') as f:
@@ -255,10 +236,8 @@ def save_evaluation_results(user_query, reference_text, summary_api, summary_oll
     with open(os.path.join(output_dir, 'summary_ollama.md'), 'w') as f:
         f.write(summary_ollama)
 
-    # Save metrics
     df.to_csv(os.path.join(output_dir, "rouge_metrics.csv"), index=False)
 
-    # Save charts
     comparison_chart.seek(0)
     with open(os.path.join(output_dir, "rouge_comparison.png"), 'wb') as f:
         f.write(comparison_chart.getvalue())
