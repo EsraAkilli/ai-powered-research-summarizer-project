@@ -67,7 +67,7 @@ def text_preprocessing(text):
     processed_text = " ".join(filtered_tokens)
     return processed_text
 
-def compute_similarity(papers, user_query):
+def compute_similarity(papers, user_query, top_k=10):
     if not papers:
         st.error("No papers found for this query!")
         return [], None, None, None
@@ -83,7 +83,10 @@ def compute_similarity(papers, user_query):
     query_vector = tfidf_vectorizer.transform([text_preprocessing(user_query)])
     query_reduced = svd.transform(query_vector)
     similarities = cosine_similarity(query_reduced, reduced_matrix).flatten()
-    top_indices = similarities.argsort()[-5:][::-1]
+
+    top_k = min(top_k, len(similarities))
+
+    top_indices = similarities.argsort()[-top_k:][::-1]
     return [(papers[i], similarities[i]) for i in top_indices], tfidf_matrix, reduced_matrix, tfidf_vectorizer
 
 def fetch_arxiv_papers(arxiv_category, start_date, end_date, max_results=300, sort_by="relevance", batch_size=50):
@@ -234,6 +237,14 @@ def main():
 
         final_query = user_query if user_query else selected_query
 
+        max_papers_to_summarize = st.slider(
+            "Number of Papers to Use for Summary (max 10)",
+            min_value=1,
+            max_value=10,
+            value=5,
+            key="max_papers_to_summarize"
+        )
+
         if st.button("Find Similar Papers", key="find_similar_tab2"):
             if not final_query:
                 st.error("Please enter or select a research interest.")
@@ -246,9 +257,12 @@ def main():
                 rows = c.fetchall()
                 conn.close()
                 papers = [{ "id": row[0], "title": row[1], "authors": row[2], "abstract": row[3], "published": row[4], "updated": row[5], "categories": row[6], "pdf_url": row[7] } for row in rows]
-                similar_papers, tfidf_matrix, reduced_matrix, tfidf_vectorizer = compute_similarity(papers, final_query)
+                similar_papers, tfidf_matrix, reduced_matrix, tfidf_vectorizer = compute_similarity(
+                    papers, final_query, top_k=max_papers_to_summarize
+                )
                 if similar_papers:
-                    st.session_state['similar_papers'] = similar_papers
+                    limited_similar_papers = similar_papers[:max_papers_to_summarize]
+                    st.session_state['similar_papers'] = limited_similar_papers
                     st.session_state['tfidf_matrix'] = tfidf_matrix
                     st.session_state['reduced_matrix'] = reduced_matrix
                     st.session_state['vectorizer'] = tfidf_vectorizer
@@ -278,7 +292,7 @@ def main():
                     st.write("**Similar Papers Shape:**", similarity_df.shape)
 
         if 'similar_papers' in st.session_state and st.session_state['similar_papers']:
-            st.subheader("Top 5 Most Relevant Papers")
+            st.subheader("Most Relevant Papers")
             for i, (paper, score) in enumerate(st.session_state['similar_papers']):
                 with st.expander(f"{i + 1}. {paper['title']} (Similarity Score: {score:.2f})"):
                     st.write(f"**Authors:** {paper['authors']}")
