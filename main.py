@@ -14,6 +14,7 @@ from nltk.corpus import stopwords
 import string
 import summarizer
 import evaluate_rouge
+import utils
 
 nltk.download('punk')
 nltk.download('stopwords')
@@ -297,7 +298,6 @@ def main():
             if st.button("Generate Summary", key="generate_summary"):
                 progress_bar = st.progress(0)
                 status_text = st.empty()
-                summary_container = st.container()
 
                 def update_progress(progress, status_text_msg):
                     progress_bar.progress(progress)
@@ -330,15 +330,41 @@ def main():
 
                 full_summary = summary + references_section
 
-                with summary_container:
-                    st.markdown("## Research Summary")
-                    st.markdown(full_summary)
+                st.session_state['full_summary'] = full_summary
+                st.session_state['summary_ready'] = True
+
+            if st.session_state.get('summary_ready', False) and 'full_summary' in st.session_state:
+                st.markdown("## Research Summary")
+                st.markdown(st.session_state['full_summary'])
+
+                safe_query = utils.safe_filename(st.session_state.get('user_query', 'research'))
+
+                col1, col2 = st.columns(2)
+
+                with col1:
                     st.download_button(
-                        label="Download Summary",
-                        data=full_summary,
-                        file_name="research_summary.md",
+                        label="Download as Markdown",
+                        data=st.session_state['full_summary'].encode('utf-8'),
+                        file_name=f"{safe_query}_summary.md",
                         mime="text/markdown",
+                        key="download_md"
                     )
+
+                with col2:
+                    with st.spinner("Preparing Word document..."):
+                        docx_bytes = utils.convert_md_to_docx(st.session_state['full_summary'])
+
+                    if docx_bytes:
+                        st.download_button(
+                            label="Download as Word",
+                            data=docx_bytes,
+                            file_name=f"{safe_query}_summary.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key="download_docx"
+                        )
+                    else:
+                        st.error("Word belgesi oluşturulamadı.")
+
 
     with tab3:
         st.subheader("Evaluate Summaries")
@@ -368,7 +394,7 @@ def main():
             st.markdown("### Radar Chart")
             st.image(radar_chart)
 
-            if st.button("💾 Save Evaluation Results"):
+            if st.button("Save Evaluation Results"):
                 path = evaluate_rouge.save_evaluation_results(
                     query,
                     evaluate_rouge.create_reference_text(evaluate_rouge.get_paper_details(paper_ids)),
