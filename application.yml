@@ -5,7 +5,7 @@ openai:
 
 ollama:
   base_url: "http://localhost:11434"
-  model: "llama3"
+  model: "gemma3:4b"
 
 # Database Configuration
 database:
