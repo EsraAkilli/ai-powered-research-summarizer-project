@@ -18,7 +18,7 @@ def setup_ollama():
 
     # Get values from config or use defaults
     base_url = ollama_config.get('base_url', 'http://localhost:11434')
-    model = ollama_config.get('model', 'llama3')
+    model = ollama_config.get('model', 'gemma3:4b')
 
     logger.info(f"Using Ollama with model: {model} at {base_url}")
     return base_url, model
